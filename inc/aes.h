@@ -20,11 +20,15 @@ using ctr = std::array<uint64_t, 2>;
 namespace cipher {
 
     class AES {
+        size_t num_threads;
     public:
 
-        AES() {
+        // If not specified, use all available threads
+        explicit AES(size_t num_threads = std::thread::hardware_concurrency()) {
             counter[0] = get_nonce();
             counter[1] = 1;
+            // If num_threads is 0, use 1 thread
+            this->num_threads = num_threads;
         }
 
         /*
@@ -35,7 +39,7 @@ namespace cipher {
          */
         int encrypt(
                 std::string &plaintext,
-                k& key,
+                k &key,
                 std::string &ciphertext) {
             return encrypt(plaintext, key, SINGLE, ciphertext);
         }
@@ -48,7 +52,7 @@ namespace cipher {
          */
         int decrypt(
                 std::string &ciphertext,
-                k& key,
+                k &key,
                 std::string &plaintext) {
             return encrypt(ciphertext, key, SINGLE, plaintext);
         }
@@ -62,7 +66,7 @@ namespace cipher {
          */
         int encrypt_multi_thread(
                 std::string &plaintext,
-                k& key,
+                k &key,
                 std::string &ciphertext) {
             return encrypt(plaintext, key, MULTI, ciphertext);
         }
@@ -76,18 +80,18 @@ namespace cipher {
          */
         int decrypt_multi_thread(
                 std::string &ciphertext,
-                k& key,
+                k &key,
                 std::string &plaintext) {
             return encrypt(ciphertext, key, MULTI, plaintext);
         }
 
     private:
 
-        std::mutex expanded_key_mtx, ciphertext_mtx;
+        std::mutex ciphertext_mtx;
         ctr counter{};
 
         // Encrypt 16 bytes block
-        void encrypt_block(
+        static void encrypt_block(
                 const ctr& counter,
                 const exp_k& expanded_key,
                 blk& state);

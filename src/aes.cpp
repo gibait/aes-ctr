@@ -3,7 +3,6 @@
 #include "utils.h"
 #include "core.cpp"
 
-#include <iostream>
 #include <array>
 #include <thread>
 #include <vector>
@@ -61,19 +60,17 @@ int cipher::AES::encrypt(std::string &plaintext,
     size_t num_of_chunks = std::ceil(double(size) / double(BLOCK_SIZE));
     D(std::cerr << "num_of_chunks: " << num_of_chunks << std::endl);
 
-    std::vector<std::string> ciphertext( num_of_chunks );
+    // Where to store the encrypted chunks of data
+    // Initialized to the number of chunks
+    std::vector<std::string> ciphertext(num_of_chunks);
 
     if (m == SINGLE) {
+
         cipher_fn(plaintext, counter, expanded_key, ciphertext);
-        // Convert ciphertext to string
-        for (auto &c : ciphertext) {
-            output.append(c);
-        }
         D(std::cerr << "ciphertext (single thread): " << output << std::endl);
 
     } else {
-        // Get the supported number of threads
-        size_t num_threads = std::thread::hardware_concurrency();
+
         // Decrement if the size is too small
         while (size < BLOCK_SIZE * num_threads) {
             num_threads -= 1;
@@ -93,7 +90,11 @@ int cipher::AES::encrypt(std::string &plaintext,
 
         // Create the threads
         for (int i = 0; i < num_threads; ++i) {
-            threads.emplace_back(&AES::cipher_fn, this, std::ref(chunks[i]), counter, std::ref(expanded_key),
+            threads.emplace_back(&AES::cipher_fn,
+                                 this,
+                                 std::ref(chunks[i]),
+                                 counter,
+                                 std::ref(expanded_key),
                                  std::ref(ciphertext));
             counter[1] += chunks_for_every_thread;
         }
@@ -103,11 +104,12 @@ int cipher::AES::encrypt(std::string &plaintext,
             thread.join();
         }
 
-        // Convert ciphertext to string
-        for (auto &c: ciphertext) {
-            output.append(c);
-        }
         D(std::cerr << "ciphertext (multi thread): " << output << std::endl);
+    }
+
+    // Convert ciphertext to string
+    for (auto &c: ciphertext) {
+        output.append(c);
     }
 
     return 0;
