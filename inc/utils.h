@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <random>
 
 #ifdef DEBUG
 #define D(x) x
@@ -12,25 +13,16 @@
 #endif
 
 /*
- * @brief: Generates a random 64-bit nonce reading from /dev/urandom
+ * @brief: Generates a random 64-bit nonce using std::random_device
  * @return: 64-bit nonce
  */
 inline uint64_t get_nonce()
 {
 
-    uint64_t nonce;
-    std::ifstream urandom("/dev/urandom", std::ios::in | std::ios::binary);
-    if (!urandom) {
-        std::cerr << "Error: could not open /dev/urandom" << std::endl;
-        exit(1);
-    }
-
-    urandom.read(reinterpret_cast<char *>(&nonce), sizeof(nonce));
-    if (nonce == 0) {
-        std::cerr << "Error: nonce cannot be 0" << std::endl;
-        exit(1);
-    }
-    return nonce;
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+    return dist(rng);
 }
 
 /*
@@ -39,9 +31,8 @@ inline uint64_t get_nonce()
  */
 inline std::string load_file_into_string(std::ifstream& file)
 {
-    std::string str((std::istreambuf_iterator<char>(file)),
-                    std::istreambuf_iterator<char>());
-    return str;
+    return {(std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>()};
 }
 
 /*
